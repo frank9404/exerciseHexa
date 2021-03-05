@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -60,11 +61,26 @@ public class TestExerciseHexa {
 			Item bestScore = listShortedScores.get(0);
 						
 			
+			System.out.println("******************************");
 			if((bestPrice.getPrice() <= bestScore.getPrice()) && (bestPrice.getScore() >= bestScore.getScore())) {
 				System.out.println("Deberías comprar el item "+bestPrice );
 			}else {
+				ArrayList<Item> listFinalScorePrice = new ArrayList<Item>();
+				for (Item item : listShortedScores) {
+					
+					if(item.getScore() == bestScore.getScore()){
+						listFinalScorePrice.add(item);
+					}
+					
+				}
+				
+				if(listFinalScorePrice.size() != 0)
+					bestScore = shortListByPrice(listFinalScorePrice).get(0);
+				
+					
 				System.out.println("Deberías comprar el item "+bestScore );
 			}
+			System.out.println("******************************");
 			
 			
 		} catch (Exception e) {
@@ -93,34 +109,48 @@ public class TestExerciseHexa {
 
 
 		ArrayList<Item> itemList = new ArrayList<Item>();
-		for (int i = 0; i < 5; i++) {
+		int iter = 0;
+		int score = 0;
+		do {
 			Item item = new Item();
-			WebElement element = productList.get(i);
+			WebElement element = productList.get(iter);
 
 			String name = element.findElement(By.cssSelector("span.a-color-base.a-text-normal")).getText();
 			System.out.println("Name:" + name);
-			item.setName(name);
-
+			
 			String priceWhole = element.findElement(By.className("a-price-whole")).getText();
 			String priceFraction = element.findElement(By.className("a-price-fraction")).getText();
 			System.out.println("priceWhole:" + priceWhole + " priceFraction:" + priceFraction);
-			item.setPrice(Float.parseFloat(priceWhole.trim() + "." + priceFraction.trim()));
-
-			Actions action = new Actions(driver);
-			WebElement elementx = element.findElement(By.cssSelector("a.a-popover-trigger.a-declarative"));
-			action.moveToElement(elementx).perform();
-
-			Thread.sleep(2000);
-			String scoreRatting = driver
-					.findElements(By.xpath("//span[@data-hook='acr-average-stars-rating-text']")).get((i))
-					.getText();
-			System.out.println("scoreRatting:" + scoreRatting);
-			item.setScore(Float.parseFloat(scoreRatting.replace("out of 5", "").trim()));
-			action.moveToElement(element.findElement(By.cssSelector("span.a-color-base.a-text-normal"))).perform();
-
-			itemList.add(item);
 			
-		}
+			Actions action = new Actions(driver);
+			
+			try {
+				WebElement elementx = element.findElement(By.cssSelector("a.a-popover-trigger.a-declarative"));
+				action.moveToElement(elementx).perform();
+				Thread.sleep(3000);
+			}catch(NoSuchElementException ex) {
+				System.out.println("El producto "+name+" no tiene score");
+				iter++;
+				continue;
+				
+			}
+			System.out.println("PASA DEL POPOVER");
+			
+			String scoreRatting = driver
+					.findElements(By.xpath("//span[@data-hook='acr-average-stars-rating-text']")).get((score))
+					.getText();
+			System.out.println("scoreRatting: " + scoreRatting);
+			
+			action.moveToElement(element.findElement(By.cssSelector("span.a-color-base.a-text-normal"))).perform();
+			
+			item.setName(name);
+			item.setPrice(Float.parseFloat(priceWhole.trim() + "." + priceFraction.trim()));
+			item.setScore(Float.parseFloat(scoreRatting.replace("out of 5", "").trim()));
+			itemList.add(item);
+			iter++;
+			score++;
+			
+		}while(itemList.size() <  5 || iter > productList.size());
 		
 		return itemList;
 	}
